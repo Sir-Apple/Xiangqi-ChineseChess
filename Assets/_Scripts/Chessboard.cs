@@ -12,8 +12,6 @@ public class Chessboard : MonoBehaviour
 	[SerializeField] private float tileSize = 1.0f;
 	[SerializeField] private float yOffset = 0.2f;
 	[SerializeField] private Vector3 boardCenter = Vector3.zero;
-	[SerializeField] private float deathSize = 0.3f;
-	[SerializeField] private float deathSpacing = 0.3f;
 
 	[Header("Prefabs && Materials")]
 	[SerializeField] private GameObject[] prefabs;
