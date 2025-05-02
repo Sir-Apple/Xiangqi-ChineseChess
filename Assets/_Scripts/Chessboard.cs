@@ -12,12 +12,16 @@ public class Chessboard : MonoBehaviour
 	[SerializeField] private float tileSize = 1.0f;
 	[SerializeField] private float yOffset = 0.2f;
 	[SerializeField] private Vector3 boardCenter = Vector3.zero;
+	[SerializeField] private float deathSize = 0.3f;
+	[SerializeField] private float deathSpacing = 0.3f;
 
 	[Header("Prefabs && Materials")]
 	[SerializeField] private GameObject[] prefabs;
 
 	private ChessPiece[,] chessPieces;
 	private ChessPiece currentlyDragging; //Drag
+	private List<ChessPiece> deadReds = new List<ChessPiece>();
+	private List<ChessPiece> deadBlues = new List<ChessPiece>();
 	private const int TILE_COUNT_X = 9;
 	private const int TILE_COUNT_Y = 10;
 	private GameObject[,] tiles;
@@ -216,6 +220,7 @@ public class Chessboard : MonoBehaviour
 	{
 		chessPieces[x, y].currentX = x;
 		chessPieces[x, y].currentY = y;
+		bool isInitialPlacement = force;
 		chessPieces[x, y].SetPosition(GetTileCenter(x, y), force);
 	}
 
@@ -234,14 +239,33 @@ public class Chessboard : MonoBehaviour
 
 			if(cp.team == ocp.team)
 				return false;
+
+			if (ocp.team == 0)
+			{
+				deadReds.Add(ocp);
+			}
+			else
+			{
+				deadBlues.Add(ocp);
+			}
+
+			StartCoroutine(AnimateDeathAndDestroy(ocp));
 		}	
 
 		chessPieces[x, y] = cp;
 		chessPieces[previousPosition.x, previousPosition.y] = null;
 
-		PositionSinglePiece(x, y, true);
+		PositionSinglePiece(x, y, false);
 
 		return true;
+	}
+	private IEnumerator AnimateDeathAndDestroy(ChessPiece piece)
+	{
+		piece.SetScale(Vector3.zero);
+
+		yield return new WaitForSeconds(0.5f);
+
+		Destroy(piece.gameObject);
 	}
 	private Vector2Int LookupTileIndex(GameObject hitInfo)
 	{

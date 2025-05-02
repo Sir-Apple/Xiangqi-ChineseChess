@@ -31,7 +31,7 @@ public class ChessPiece : MonoBehaviour
 
 	private void Update()
 	{
-		transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 25); // smoother & faster
+		transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 10);
 
 		transform.localScale = Vector3.Lerp(transform.localScale, desiredScale, Time.deltaTime * 10);
 	}
