@@ -24,6 +24,7 @@ public class Chessboard : MonoBehaviour
 	private const int TILE_COUNT_Y = 10;
 	private GameObject[,] tiles;
 	private Camera currentCamera;
+	private int currentTurn = 0; // 0 = Red, 1 = Blue
 	private Vector2Int currentHover;
 	private Vector3 bounds;
 
@@ -64,45 +65,26 @@ public class Chessboard : MonoBehaviour
 			{
 				ChessPiece clickedPiece = chessPieces[hitPosition.x, hitPosition.y];
 
-				if (currentlyDragging == null)
+				if (clickedPiece != null && clickedPiece.team == currentTurn)
 				{
-					if (clickedPiece != null)
-					{
-						currentlyDragging = clickedPiece;
-					}
+					currentlyDragging = clickedPiece;
 				}
-				else
+				else if (currentlyDragging != null)
 				{
 					Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
-					bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
+					List<Vector2Int> availableMoves = currentlyDragging.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
 
-					if (validMove)
+					if (availableMoves.Contains(hitPosition))
 					{
-						currentlyDragging = null;
+						bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
+						if (validMove)
+						{
+							currentlyDragging = null;
+							currentTurn = 1 - currentTurn;
+						}
 					}
 				}
 			}
-
-
-			/* Use this for drag to move */
-
-			//if (currentlyDragging != null && Input.GetMouseButtonUp(0))
-			//{
-			//	Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
-
-			//	bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
-			//	if (!validMove)
-			//	{
-			//		currentlyDragging.SetPosition(GetTileCenter(previousPosition.x, previousPosition.y));
-			//		currentlyDragging = null;
-			//		Debug.Log("Invalid move");
-			//	}
-			//	else
-			//	{
-			//		currentlyDragging = null;
-			//		Debug.Log("Piece moved");
-			//	}
-			//}
 		}
 		else
 		{
@@ -230,31 +212,21 @@ public class Chessboard : MonoBehaviour
 	private bool MoveTo(ChessPiece cp, int x, int y)
 	{
 		Vector2Int previousPosition = new Vector2Int(cp.currentX, cp.currentY);
+		ChessPiece targetPiece = chessPieces[x, y];
+		if (targetPiece != null && targetPiece.team == cp.team)
+			return false;
 
-		if (chessPieces[x, y] != null)
-		{
-			ChessPiece ocp = chessPieces[x, y];
-
-			if(cp.team == ocp.team)
-				return false;
-
-			if (ocp.team == 0)
-			{
-				deadReds.Add(ocp);
-			}
-			else
-			{
-				deadBlues.Add(ocp);
-			}
-
-			StartCoroutine(AnimateDeathAndDestroy(ocp));
-		}	
-
-		chessPieces[x, y] = cp;
 		chessPieces[previousPosition.x, previousPosition.y] = null;
+		ChessPiece captured = chessPieces[x, y];
+		chessPieces[x, y] = cp;
+
+		cp.currentX = x;
+		cp.currentY = y;
+
+		if (captured != null)
+			StartCoroutine(AnimateDeathAndDestroy(captured));
 
 		PositionSinglePiece(x, y, false);
-
 		return true;
 	}
 	private IEnumerator AnimateDeathAndDestroy(ChessPiece piece)
