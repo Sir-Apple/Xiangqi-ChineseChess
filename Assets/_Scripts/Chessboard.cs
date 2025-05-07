@@ -74,6 +74,11 @@ public class Chessboard : MonoBehaviour
 					Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
 					List<Vector2Int> availableMoves = currentlyDragging.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
 
+					if (IsTeamInCheck(currentTurn))
+					{
+						availableMoves = availableMoves.FindAll(move => !DoesMoveExposeGeneral(currentlyDragging, move));
+					}
+
 					if (availableMoves.Contains(hitPosition))
 					{
 						bool validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
@@ -223,6 +228,15 @@ public class Chessboard : MonoBehaviour
 		cp.currentX = x;
 		cp.currentY = y;
 
+		if (IsFlyingGeneralExposed())
+		{
+			chessPieces[previousPosition.x, previousPosition.y] = cp;
+			chessPieces[x, y] = captured;
+			cp.currentX = previousPosition.x;
+			cp.currentY = previousPosition.y;
+			return false;
+		}
+
 		if (captured != null)
 			StartCoroutine(AnimateDeathAndDestroy(captured));
 
@@ -246,5 +260,104 @@ public class Chessboard : MonoBehaviour
 
 		return -Vector2Int.one;
 
+	}
+
+	private bool DoesMoveExposeGeneral(ChessPiece cp, Vector2Int target)
+	{
+		Vector2Int originalPos = new Vector2Int(cp.currentX, cp.currentY);
+		ChessPiece targetPiece = chessPieces[target.x, target.y];
+
+		// Simulate move
+		chessPieces[originalPos.x, originalPos.y] = null;
+		chessPieces[target.x, target.y] = cp;
+		cp.currentX = target.x;
+		cp.currentY = target.y;
+
+		bool stillInCheck = IsTeamInCheck(cp.team);
+
+		// Undo move
+		chessPieces[originalPos.x, originalPos.y] = cp;
+		chessPieces[target.x, target.y] = targetPiece;
+		cp.currentX = originalPos.x;
+		cp.currentY = originalPos.y;
+
+		return stillInCheck;
+	}
+
+	private bool IsTeamInCheck(int team)
+	{
+		Vector2Int generalPos = FindGeneralPosition(team);
+
+		for (int x = 0; x < TILE_COUNT_X; x++)
+		{
+			for (int y = 0; y < TILE_COUNT_Y; y++)
+			{
+				ChessPiece piece = chessPieces[x, y];
+				if (piece != null && piece.team != team)
+				{
+					var enemyMoves = piece.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
+					if (enemyMoves.Contains(generalPos))
+						return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private Vector2Int FindGeneralPosition(int team)
+	{
+		for (int x = 0; x < TILE_COUNT_X; x++)
+		{
+			for (int y = 0; y < TILE_COUNT_Y; y++)
+			{
+				ChessPiece piece = chessPieces[x, y];
+				if (piece is General && piece.team == team)
+				{
+					return new Vector2Int(x, y);
+				}
+			}
+		}
+		return -Vector2Int.one; // Should never happen
+	}
+
+	private bool IsFlyingGeneralExposed()
+	{
+		int generalX = -1;
+		int redY = -1, blueY = -1;
+
+		for (int x = 0; x < TILE_COUNT_X; x++)
+		{
+			int found = 0;
+			for (int y = 0; y < TILE_COUNT_Y; y++)
+			{
+				var piece = chessPieces[x, y];
+				if (piece is General)
+				{
+					if (piece.team == 0)
+					{
+						redY = y;
+					}
+					else
+					{
+						blueY = y;
+					}
+					generalX = x;
+					found++;
+				}
+			}
+			if (found == 2 && generalX != -1)
+			{
+				// check if any piece between 2 generals
+				int minY = Mathf.Min(redY, blueY);
+				int maxY = Mathf.Max(redY, blueY);
+				for(int y = minY + 1; y < maxY; y++)
+				{
+					if (chessPieces[generalX, y] != null)
+						return false; // not exposed
+				}
+				return true; // exposed (illegal)
+			}
+		}
+		return false; 
 	}
 }
