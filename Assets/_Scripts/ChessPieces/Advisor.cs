@@ -31,14 +31,4 @@ public class Advisor : ChessPiece
 
 		return r;
 	}
-
-	private bool IsInsidePalace(int x, int y, int team)
-	{
-		if(x < 3 || x > 5) return false;
-
-		if (team == 0) // red team
-			return y >= 0 && y <= 2;
-		else // blue team
-			return y >= 7 && y <= 9;
-	}
 }

@@ -62,4 +62,17 @@ public class ChessPiece : MonoBehaviour
 		if (force)
 			transform.localScale = desiredScale;
 	}
+	protected bool IsInsideBoard(int x, int y, int maxX, int maxY)
+	{
+		return x >= 0 && x < maxX && y >= 0 && y < maxY;
+	}
+	protected bool IsInsidePalace(int x, int y, int team)
+	{
+		if (x < 3 || x > 5) return false;
+
+		if (team == 0) // red team
+			return y >= 0 && y <= 2;
+		else // blue team
+			return y >= 7 && y <= 9;
+	}
 }
