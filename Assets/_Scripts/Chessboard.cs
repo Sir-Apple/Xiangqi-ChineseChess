@@ -9,6 +9,9 @@ public class Chessboard : MonoBehaviour
 {
 	[Header("Art stuff")]
 	[SerializeField] private Material tileMaterial;
+	[SerializeField] private Material checkHighlightMaterial;
+	private Material originalTileMaterial;
+	private Vector2Int? checkedGeneralPosition = null;
 	[SerializeField] private float tileSize = 1.0f;
 	[SerializeField] private float yOffset = 0.2f;
 	[SerializeField] private Vector3 boardCenter = Vector3.zero;
@@ -74,10 +77,7 @@ public class Chessboard : MonoBehaviour
 					Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
 					List<Vector2Int> availableMoves = currentlyDragging.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
 
-					if (IsTeamInCheck(currentTurn))
-					{
-						availableMoves = availableMoves.FindAll(move => !DoesMoveExposeGeneral(currentlyDragging, move));
-					}
+					availableMoves = availableMoves.FindAll(move => !DoesMoveExposeGeneral(currentlyDragging, move));
 
 					if (availableMoves.Contains(hitPosition))
 					{
@@ -104,6 +104,7 @@ public class Chessboard : MonoBehaviour
 				currentlyDragging = null;
 			}
 		}
+		HighlightGeneralIfInCheck();
 	}
 
 	private void GenerateAllTiles(float tileSize, int tileCountX, int tileCountY)
@@ -262,28 +263,6 @@ public class Chessboard : MonoBehaviour
 
 	}
 
-	private bool DoesMoveExposeGeneral(ChessPiece cp, Vector2Int target)
-	{
-		Vector2Int originalPos = new Vector2Int(cp.currentX, cp.currentY);
-		ChessPiece targetPiece = chessPieces[target.x, target.y];
-
-		// Simulate move
-		chessPieces[originalPos.x, originalPos.y] = null;
-		chessPieces[target.x, target.y] = cp;
-		cp.currentX = target.x;
-		cp.currentY = target.y;
-
-		bool stillInCheck = IsTeamInCheck(cp.team);
-
-		// Undo move
-		chessPieces[originalPos.x, originalPos.y] = cp;
-		chessPieces[target.x, target.y] = targetPiece;
-		cp.currentX = originalPos.x;
-		cp.currentY = originalPos.y;
-
-		return stillInCheck;
-	}
-
 	private bool IsTeamInCheck(int team)
 	{
 		Vector2Int generalPos = FindGeneralPosition(team);
@@ -302,6 +281,7 @@ public class Chessboard : MonoBehaviour
 			}
 		}
 		return false;
+
 	}
 
 	private Vector2Int FindGeneralPosition(int team)
@@ -317,7 +297,44 @@ public class Chessboard : MonoBehaviour
 				}
 			}
 		}
-		return -Vector2Int.one; // Should never happen
+		return -Vector2Int.one;
+	}
+
+	private bool DoesMoveExposeGeneral(ChessPiece cp, Vector2Int target)
+	{
+		Vector2Int originalPos = new Vector2Int(cp.currentX, cp.currentY);
+		ChessPiece targetPiece = chessPieces[target.x, target.y];
+
+		chessPieces[originalPos.x, originalPos.y] = null;
+		chessPieces[target.x, target.y] = cp;
+		cp.currentX = target.x;
+		cp.currentY = target.y;
+
+		bool stillInCheck = IsTeamInCheck(cp.team);
+
+		chessPieces[originalPos.x, originalPos.y] = cp;
+		chessPieces[target.x, target.y] = targetPiece;
+		cp.currentX = originalPos.x;
+		cp.currentY = originalPos.y;
+
+		return stillInCheck;
+	}
+
+	private void HighlightGeneralIfInCheck()
+	{
+		if (checkedGeneralPosition.HasValue)
+		{
+			Vector2Int prev = checkedGeneralPosition.Value;
+			tiles[prev.x, prev.y].GetComponent<MeshRenderer>().material = originalTileMaterial;
+			checkedGeneralPosition = null;
+		}
+		Vector2Int generalPos = FindGeneralPosition(currentTurn);
+		if(IsTeamInCheck(currentTurn))
+		{
+			originalTileMaterial = tiles[generalPos.x, generalPos.y].GetComponent<MeshRenderer>().material;
+			tiles[generalPos.x, generalPos.y].GetComponent<MeshRenderer>().material = checkHighlightMaterial;
+			checkedGeneralPosition = generalPos;
+		}
 	}
 
 	private bool IsFlyingGeneralExposed()

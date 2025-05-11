@@ -471,3 +471,4 @@ MonoBehaviour:
   - {fileID: 937770660551278518, guid: 8f83fb4ebcaeab14db900baa92179242, type: 3}
   - {fileID: 7459935552713867494, guid: 80231ae30382476459ffefaf66c05eb2, type: 3}
   - {fileID: 4684691420644069551, guid: df1bd1e610bc77d46b5cfab233205d54, type: 3}
+  checkHighlightMaterial: {fileID: 2100000, guid: b64e0090eba5a23489ff62d0cacc5a2b, type: 2}
