@@ -85,7 +85,20 @@ public class Chessboard : MonoBehaviour
 						if (validMove)
 						{
 							currentlyDragging = null;
-							currentTurn = 1 - currentTurn;
+
+							int opponent = 1 - currentTurn;
+							if (IsCheckmate(opponent))
+							{
+								Debug.Log((currentTurn == 0 ? "Red" : "Blue") + "wins by checkmate");
+
+								// disable further interaction
+								enabled = false;
+							}
+							else
+							{
+								currentTurn = opponent;
+							}
+							//currentTurn = 1 - currentTurn;
 						}
 					}
 				}
@@ -376,5 +389,29 @@ public class Chessboard : MonoBehaviour
 			}
 		}
 		return false; 
+	}
+
+	private bool IsCheckmate(int team)
+	{
+		if (!IsTeamInCheck(team)) 
+			return false;
+
+		for (int x = 0;x < TILE_COUNT_X; x++)
+		{
+			for(int y = 0; y < TILE_COUNT_Y; y++)
+			{
+				ChessPiece piece = chessPieces[x, y];
+				if (piece != null && piece.team == team)
+				{
+					List<Vector2Int> moves = piece.GetAvailableMoves(ref chessPieces, TILE_COUNT_X, TILE_COUNT_Y);
+					foreach (var move in moves)
+					{
+						if (!DoesMoveExposeGeneral(piece, move))
+							return false; // no one legal move to avoid check
+					}
+				}
+			}
+		}
+		return true;
 	}
 }
