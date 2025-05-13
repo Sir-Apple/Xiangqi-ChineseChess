@@ -15,6 +15,15 @@ public class Chessboard : MonoBehaviour
 	[SerializeField] private float tileSize = 1.0f;
 	[SerializeField] private float yOffset = 0.2f;
 	[SerializeField] private Vector3 boardCenter = Vector3.zero;
+	[SerializeField] private GameUI gameUI;
+
+	[Header("Audio stuff")]
+	[SerializeField] private AudioSource sfxAudioSource;
+	[SerializeField] private AudioSource checkMusicSource;
+	[SerializeField] private AudioClip moveSFX;
+	[SerializeField] private AudioClip captureSFX;
+	[SerializeField] private AudioClip checkMusic;
+
 
 	[Header("Prefabs && Materials")]
 	[SerializeField] private GameObject[] prefabs;
@@ -37,6 +46,7 @@ public class Chessboard : MonoBehaviour
 		SpawnAllPieces();
 		PositionAllPieces();
 	}
+
 	private void Update()
 	{
 		if (!currentCamera)
@@ -89,7 +99,7 @@ public class Chessboard : MonoBehaviour
 							int opponent = 1 - currentTurn;
 							if (IsCheckmate(opponent))
 							{
-								Debug.Log((currentTurn == 0 ? "Red" : "Blue") + "wins by checkmate");
+								gameUI.ShowWinner(currentTurn);
 
 								// disable further interaction
 								enabled = false;
@@ -252,7 +262,15 @@ public class Chessboard : MonoBehaviour
 		}
 
 		if (captured != null)
+		{
 			StartCoroutine(AnimateDeathAndDestroy(captured));
+			sfxAudioSource.PlayOneShot(captureSFX);
+		}
+		else
+		{
+			sfxAudioSource.PlayOneShot(moveSFX);
+		}
+			
 
 		PositionSinglePiece(x, y, false);
 		return true;
@@ -347,7 +365,52 @@ public class Chessboard : MonoBehaviour
 			originalTileMaterial = tiles[generalPos.x, generalPos.y].GetComponent<MeshRenderer>().material;
 			tiles[generalPos.x, generalPos.y].GetComponent<MeshRenderer>().material = checkHighlightMaterial;
 			checkedGeneralPosition = generalPos;
+
+			if(!checkMusicSource.isPlaying)
+			{
+				checkMusicSource.clip = checkMusic;
+				checkMusicSource.loop = true;
+				StartCoroutine(FadeInMusic(checkMusicSource, 0.5f));
+			}
 		}
+		else
+		{
+			if(checkMusicSource.isPlaying)
+			{
+				StartCoroutine(FadeOutMusic(checkMusicSource, 0.5f));
+			}
+		}
+	}
+
+	private IEnumerator FadeInMusic(AudioSource audioSource, float duration)
+	{
+		audioSource.volume = 0f;
+		audioSource.Play();
+
+		float targetVolume = 1f;
+		float timer = 0f;
+
+		while (timer < duration)
+		{
+			audioSource.volume = Mathf.Lerp(0f, targetVolume, timer / duration);
+			timer += Time.deltaTime;
+			yield return null;
+		}
+		audioSource.volume = targetVolume;
+	}
+	private IEnumerator FadeOutMusic(AudioSource audioSource, float duration)
+	{
+		float startVolume = audioSource.volume;
+		float timer = 0f;
+
+		while(timer < duration)
+		{
+			audioSource.volume = Mathf.Lerp(startVolume, 0f, timer / duration);
+			timer += Time.deltaTime;
+			yield return null;
+		}
+		audioSource.Stop();
+		audioSource.volume = startVolume;
 	}
 
 	private bool IsFlyingGeneralExposed()
